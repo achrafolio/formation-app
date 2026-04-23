@@ -2,14 +2,11 @@
 
 Une application web simple de gestion de formations construite avec Laravel 11, Docker, et GitHub Actions.
 
-## Prérequis
+## Prérequis (Développement Local)
 
 - Docker et Docker Compose installés sur votre machine.
-- (Optionnel) PHP 8.2+ et Composer si vous souhaitez lancer le projet sans Docker.
 
-## Lancement avec Docker Compose (Recommandé)
-
-C'est la méthode la plus simple pour démarrer l'application avec sa base de données.
+## Lancement Local avec Docker Compose
 
 1. **Entrez dans le dossier** `formation-app`.
 2. **Configuration** : Copiez le fichier d'environnement.
@@ -20,7 +17,7 @@ C'est la méthode la plus simple pour démarrer l'application avec sa base de do
    ```bash
    docker-compose up -d
    ```
-   *Cela va démarrer l'application PHP sur le port 3000 et MySQL sur le port 3306.*
+   *Cela va démarrer l'application PHP sur le port 3000 et MySQL sur le port 3307.*
    
 4. **Initialiser l'application** : Exécutez ces commandes dans le conteneur `app` pour installer les dépendances et la clé :
    ```bash
@@ -35,30 +32,57 @@ C'est la méthode la plus simple pour démarrer l'application avec sa base de do
 6. **Accès à l'application** : 
    Ouvrez votre navigateur sur [http://localhost:3000](http://localhost:3000).
 
-## Lancement sans Docker
+---
 
-Si vous avez PHP 8.2, Composer et un serveur MySQL local :
+## 🚀 Déploiement en Production (VPS)
 
-1. Copiez le fichier `.env` : `cp .env.example .env`
-2. Modifiez le fichier `.env` pour utiliser vos identifiants MySQL (assurez-vous d'avoir créé une base `formation_db`).
-3. Installez les dépendances : `composer install`
-4. Générez la clé : `php artisan key:generate`
-5. Migrez et seedez la base de données : `php artisan migrate --seed`
-6. Lancez le serveur local : `php artisan serve --port=3000`
-7. Accédez à `http://localhost:3000`.
+Ce projet est configuré avec un pipeline CI/CD GitHub Actions pour se déployer automatiquement sur un serveur VPS à chaque `push` sur la branche `main`.
 
-## Lancement avec Docker (sans Docker Compose)
+### Architecture de Production
+- Un service **Nginx** sert de reverse proxy et expose l'application sur le port `80`.
+- L'application tourne derrière Nginx.
+- La base de données est sécurisée dans le réseau Docker sans port exposé publiquement.
+- Un fichier `docker-compose.prod.yml` est utilisé pour cette configuration.
 
-Vous pouvez construire et lancer le conteneur de l'application (nécessite une base de données configurée dans le `.env`) :
+### 1. Préparation du serveur VPS
+Sur votre serveur Ubuntu :
+1. Installez Docker et Docker Compose.
+2. Créez un dossier pour le projet :
+   ```bash
+   mkdir -p /var/www/formation-app
+   cd /var/www/formation-app
+   ```
+3. Clonez votre dépôt GitHub manuellement la première fois :
+   ```bash
+   git clone https://github.com/votre-compte/formation-app.git .
+   ```
+4. Créez le fichier `.env` de production :
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
+   *Modifiez ces valeurs essentielles pour la production :*
+   ```env
+   APP_ENV=production
+   APP_DEBUG=false
+   # Générez une vraie clé locale et collez-la ici
+   APP_KEY=base64:xxx...
+   ```
 
-```bash
-docker build -t formation-app .
-docker run -p 3000:3000 -v $(pwd):/app formation-app
-```
+### 2. Configuration des GitHub Secrets
+Dans les paramètres de votre dépôt GitHub (`Settings > Secrets and variables > Actions`), ajoutez les secrets suivants :
+- `VPS_HOST` : Adresse IP de votre serveur VPS (ex: 192.168.1.100)
+- `VPS_PORT` : Port SSH (généralement `22`)
+- `VPS_USER` : Utilisateur SSH (ex: `root` ou `ubuntu`)
+- `VPS_SSH_KEY` : Votre clé privée SSH (qui correspond à la clé publique autorisée sur le VPS)
+- `VPS_PROJECT_PATH` : Chemin absolu vers le projet (ex: `/var/www/formation-app`)
 
-## Structure et détails techniques
+### 3. Comment ça marche ?
+À chaque push sur `main`, GitHub Actions va :
+1. Se connecter au VPS via SSH.
+2. Lancer le script `./deploy.sh` sur le serveur.
+3. Ce script fait un `git pull`, redémarre les conteneurs avec `docker-compose.prod.yml` et exécute les optimisations Laravel (`config:cache`, `migrate --force`, etc.).
 
-- **Modèle et Base de données** : Le modèle `Formation` gère la table `formations` avec les champs (titre, description, formateur, duree, date_debut). Validation intégrée sur tous les champs requis.
-- **Identifiants Docker MySQL** : La base se nomme `formation_db`, avec l'utilisateur `formation_user` et le mot de passe `secret`.
-- **Dockerfile** : Inclut PHP 8.2, toutes les extensions requises (pdo_mysql, mbstring, xml, etc.), ainsi que Composer. Configure également les permissions correctes pour le dossier `storage` et `bootstrap/cache`.
-- **CI/CD** : Un pipeline GitHub Actions se lance au push sur main pour valider la compilation Docker et tester la configuration via `php artisan route:list`.
+### Commandes utiles (Debug sur le VPS)
+- Voir les logs de production : `docker-compose -f docker-compose.prod.yml logs -f`
+- Relancer manuellement : `bash deploy.sh`

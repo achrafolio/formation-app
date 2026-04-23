@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: formation-app-prod
+    restart: always
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - prod-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: formation-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - prod-network
+
+  db:
+    image: mysql:8.0
+    container_name: formation-db-prod
+    restart: always
+    environment:
+      MYSQL_DATABASE: formation_db
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_USER: formation_user
+      MYSQL_PASSWORD: secret
+    volumes:
+      - dbdata_prod:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psecret"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - prod-network
+
+networks:
+  prod-network:
+    driver: bridge
+
+volumes:
+  dbdata_prod:
