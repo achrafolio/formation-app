@@ -7,8 +7,10 @@ services:
       dockerfile: Dockerfile
     container_name: formation-app-prod
     restart: always
+    env_file:
+      - .env
     volumes:
-      - .:/app
+      - ./storage:/app/storage
     depends_on:
       db:
         condition: service_healthy

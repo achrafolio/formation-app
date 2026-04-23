@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+set timeout -1
+set password "123jakarta@?"
+set ip "161.97.182.212"
+
+spawn scp -o StrictHostKeyChecking=no setup_vps.sh root@$ip:/tmp/setup_vps.sh
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    eof
+}
+
+spawn scp -o StrictHostKeyChecking=no github_deploy_key.pub root@$ip:/tmp/github_deploy_key.pub
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    eof
+}
+
+spawn ssh -o StrictHostKeyChecking=no root@$ip "chmod +x /tmp/setup_vps.sh && /tmp/setup_vps.sh \"\$(cat /tmp/github_deploy_key.pub)\""
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    eof
+}
