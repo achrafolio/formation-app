@@ -24,3 +24,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Deployment scripts & keys
+github_deploy_key
+github_deploy_key.pub
+run_expect.exp
+check_vps.exp
+setup_vps.sh
