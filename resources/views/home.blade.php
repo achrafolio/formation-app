@@ -3,7 +3,7 @@
 @section('content')
     <div class="p-5 mb-4 bg-light rounded-3">
         <div class="container-fluid py-5">
-            <h1 class="display-5 fw-bold">Bienvenue sur Formation App 🚀</h1>
+            <h1 class="display-5 fw-bold">Bienvenue sur Formation App</h1>
             <span class="badge bg-success">Déploiement automatique actif</span>
             <p class="col-md-8 fs-4">
                 Une application simple et efficace pour gérer votre catalogue de formations. 
